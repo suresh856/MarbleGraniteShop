@@ -23,5 +23,7 @@ namespace MarbleGraniteShop.DataAccess.Data
         public DbSet<OrderDetails> OrderDetails { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<FeedBack> FeedBacks { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<ProductsSelectedForAppointment> ProductsSelectedForAppointments { get; set; }
     }
 }

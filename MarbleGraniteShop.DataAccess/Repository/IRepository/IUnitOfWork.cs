@@ -15,6 +15,8 @@ namespace MarbleGraniteShop.DataAccess.Repository.IRepository
         IOrderDetailsRepository OrderDetails { get; }
         IImageRepository Images { get; }
         IFeedbackRepository FeedBack { get; }
+        IAppointmentRepository Appointment { get; }
+        IProductsSelectedForAppointmentRepository ProductsSelectedForAppointment { get; }
 
         void Save();
     }

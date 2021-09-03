@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Stripe;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -30,6 +31,18 @@ namespace MarbleGraniteShop.Areas.Customer.Controllers
 
         [BindProperty]
         public ShoppingCartVM ShoppingCartVM { get; set; }
+
+
+        public static string EmailTemlateForCompnay = @"Hi companyName,<br > You have appointment with
+                        customerName scheduled on appointmentDate.<br >Product(s) selected by customer are <br > productsForAppointment.
+                        <br ><br >Regards MarbleGraniteShop
+                       ";
+
+        public static string EmailTemlateForCustomer = @"Hi customerName,<br > You have appointment with
+                        companyName scheduled on appointmentDate.<br >Product(s) selected by you are <br > productsForAppointment.
+                        <br ><br >Regards MarbleGraniteShop
+                       ";
+        public static string EmailSubject = "Appointment with partyName  on appointmentDate";
 
         public CartController(IUnitOfWork unitOfWork, IEmailSender emailSender,
             UserManager<IdentityUser> userManager, IOptions<TwilioSettings> twilionOptions)
@@ -175,6 +188,7 @@ namespace MarbleGraniteShop.Areas.Customer.Controllers
                 ShoppingCartVM.OrderHeader.City = ShoppingCartVM.OrderHeader.ApplicationUser.City;
                 ShoppingCartVM.OrderHeader.State = ShoppingCartVM.OrderHeader.ApplicationUser.State;
                 ShoppingCartVM.OrderHeader.PostalCode = ShoppingCartVM.OrderHeader.ApplicationUser.PostalCode;
+                ShoppingCartVM.OrderHeader.Email = ShoppingCartVM.OrderHeader.ApplicationUser.Email;
 
                 return View(ShoppingCartVM);
             }
@@ -185,107 +199,193 @@ namespace MarbleGraniteShop.Areas.Customer.Controllers
             }
         }
 
+        //Enable this method when Order processing is needed.Now commented because using Appointent system
+        //[HttpPost]
+        //[ActionName("Summary")]
+        //[ValidateAntiForgeryToken]
+        //public IActionResult SummaryPost(string stripeToken)
+        //{
+        //    if (string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.Name) || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.PhoneNumber)
+        //        || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.City) || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.State)
+        //        || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.PostalCode)
+        //        )
+        //    {
+        //        return RedirectToAction(nameof(Summary));
+        //    }
+
+        //    try
+        //    {
+        //        var claimsIdentity = (ClaimsIdentity)User.Identity;
+        //        var claim = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
+        //        ShoppingCartVM.OrderHeader.ApplicationUser = _unitOfWork.ApplicationUser
+        //                                                        .GetFirstOrDefault(c => c.Id == claim.Value,
+        //                                                                includeProperties: "Company");
+
+        //        ShoppingCartVM.ListCart = _unitOfWork.ShoppingCart
+        //                                    .GetAll(c => c.ApplicationUserId == claim.Value,
+        //                                    includeProperties: "Product");
+
+        //        ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusPending;
+        //        ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusPending;
+        //        ShoppingCartVM.OrderHeader.ApplicationUserId = claim.Value;
+        //        ShoppingCartVM.OrderHeader.OrderDate = DateTime.Now;
+
+        //        _unitOfWork.OrderHeader.Add(ShoppingCartVM.OrderHeader);
+        //        _unitOfWork.Save();
+
+        //        foreach (var item in ShoppingCartVM.ListCart)
+        //        {
+
+        //            OrderDetails orderDetails = new OrderDetails()
+        //            {
+        //                ProductId = item.ProductId,
+        //                OrderId = ShoppingCartVM.OrderHeader.Id,
+        //                Price = item.Product.Price,
+        //                Count = item.Count
+        //            };
+        //            ShoppingCartVM.OrderHeader.OrderTotal += orderDetails.Count * orderDetails.Price;
+        //            _unitOfWork.OrderDetails.Add(orderDetails);
+
+        //        }
+
+        //        _unitOfWork.ShoppingCart.RemoveRange(ShoppingCartVM.ListCart);
+        //        _unitOfWork.Save();
+        //        HttpContext.Session.SetInt32(SD.ssShoppingCart, 0);
+
+        //        if (stripeToken == null)
+        //        {
+        //            //order will be created for delayed payment for authroized company
+        //            ShoppingCartVM.OrderHeader.PaymentDueDate = DateTime.Now.AddDays(30);
+        //            ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusDelayedPayment;
+        //            ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusApproved;
+        //        }
+        //        else
+        //        {
+        //            //process the payment
+        //            var options = new ChargeCreateOptions
+        //            {
+        //                Amount = Convert.ToInt32(ShoppingCartVM.OrderHeader.OrderTotal * 100),
+        //                Currency = "usd",
+        //                Description = "Order ID : " + ShoppingCartVM.OrderHeader.Id,
+        //                Source = stripeToken
+        //            };
+
+        //            var service = new ChargeService();
+        //            Charge charge = service.Create(options);
+
+        //            if (charge.Id == null)
+        //            {
+        //                ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusRejected;
+        //            }
+        //            else
+        //            {
+        //                ShoppingCartVM.OrderHeader.TransactionId = charge.Id;
+        //            }
+        //            if (charge.Status.ToLower() == "succeeded")
+        //            {
+        //                ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusApproved;
+        //                ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusApproved;
+        //                ShoppingCartVM.OrderHeader.PaymentDate = DateTime.Now;
+        //            }
+        //        }
+
+        //        _unitOfWork.Save();
+
+        //        return RedirectToAction("OrderConfirmation", "Cart", new { id = ShoppingCartVM.OrderHeader.Id });
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        throw ex;
+        //    }
+        //}
         [HttpPost]
         [ActionName("Summary")]
         [ValidateAntiForgeryToken]
-        public IActionResult SummaryPost(string stripeToken)
+        public IActionResult SummaryPost(ShoppingCartVM ShoppingCartVM)
         {
-            if (string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.Name) || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.PhoneNumber)
-                || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.City) || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.State)
-                || string.IsNullOrEmpty(ShoppingCartVM.OrderHeader.PostalCode)
-                )
+            // email sending part is remaining 
+            var claimsIdentity = (ClaimsIdentity)User.Identity;
+            var claim = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
+
+            ShoppingCartVM.ListCart = _unitOfWork.ShoppingCart.GetAll(c => c.ApplicationUserId == claim.Value,
+                                                        includeProperties: "Product");
+
+            ShoppingCartVM.OrderHeader.ApplicationUser = _unitOfWork.ApplicationUser
+                                                            .GetFirstOrDefault(c => c.Id == claim.Value,
+                                                                includeProperties: "Company");
+
+
+            ShoppingCartVM.OrderHeader.AppointmentDate = ShoppingCartVM.OrderHeader.AppointmentDate
+                                                            .AddHours(ShoppingCartVM.OrderHeader.AppointmentTime.Hour)
+                                                            .AddMinutes(ShoppingCartVM.OrderHeader.AppointmentTime.Minute);
+
+            List<int> companyIds = new List<int>();
+            foreach (var list in ShoppingCartVM.ListCart)
             {
-                return RedirectToAction(nameof(Summary));
+
+                companyIds.Add(list.Product.CompanyId);
             }
 
-            try
+            companyIds = companyIds.Distinct().ToList();
+            int appointmentId=0;
+            foreach (int id in companyIds)
             {
-                var claimsIdentity = (ClaimsIdentity)User.Identity;
-                var claim = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
-                ShoppingCartVM.OrderHeader.ApplicationUser = _unitOfWork.ApplicationUser
-                                                                .GetFirstOrDefault(c => c.Id == claim.Value,
-                                                                        includeProperties: "Company");
-
-                ShoppingCartVM.ListCart = _unitOfWork.ShoppingCart
-                                            .GetAll(c => c.ApplicationUserId == claim.Value,
-                                            includeProperties: "Product");
-
-                ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusPending;
-                ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusPending;
-                ShoppingCartVM.OrderHeader.ApplicationUserId = claim.Value;
-                ShoppingCartVM.OrderHeader.OrderDate = DateTime.Now;
-
-                _unitOfWork.OrderHeader.Add(ShoppingCartVM.OrderHeader);
+                Appointment appointments = new Appointment();
+                appointments.AppointmentDate = ShoppingCartVM.OrderHeader.AppointmentDate;
+                appointments.CustomerName = ShoppingCartVM.OrderHeader.Name;
+                appointments.CustomerPhoneNumber = ShoppingCartVM.OrderHeader.PhoneNumber;
+                appointments.CustomerEmail = ShoppingCartVM.OrderHeader.Email;
+                appointments.CompanyId = id;
+                appointments.AppointmentDate = ShoppingCartVM.OrderHeader.AppointmentDate;
+                // find another solution for this operation as this hits db for each entries
+                _unitOfWork.Appointment.Add(appointments);
                 _unitOfWork.Save();
+                appointmentId = appointments.Id;
 
-                foreach (var item in ShoppingCartVM.ListCart)
+                var productList = ShoppingCartVM.ListCart.Where(c => c.Product.CompanyId == id).ToList();
+                string productsForAppointment = @"";
+                foreach(var item in productList)
                 {
-
-                    OrderDetails orderDetails = new OrderDetails()
+                    productsForAppointment = productsForAppointment +  "Product Name : "+ item.Product.Name;
+                    productsForAppointment = productsForAppointment  + "  Product Code : "+ item.Product.Id;
+                    productsForAppointment = productsForAppointment + ("<br >");
+                    ProductsSelectedForAppointment productsSelectedForAppointment = new ProductsSelectedForAppointment()
                     {
-                        ProductId = item.ProductId,
-                        OrderId = ShoppingCartVM.OrderHeader.Id,
-                        Price = item.Product.Price,
-                        Count = item.Count
+                        AppointmentId = appointmentId,
+                        ProductId = item.ProductId
                     };
-                    ShoppingCartVM.OrderHeader.OrderTotal += orderDetails.Count * orderDetails.Price;
-                    _unitOfWork.OrderDetails.Add(orderDetails);
-
+                    _unitOfWork.ProductsSelectedForAppointment.Add(productsSelectedForAppointment);
                 }
+                Company company = _unitOfWork.Company.Get(id);
+                string mailSubject = EmailSubject;
+                mailSubject = mailSubject.Replace("appointmentDate", ShoppingCartVM.OrderHeader.AppointmentDate.ToString("dd/M/yyyy", CultureInfo.InvariantCulture));
+                string mailSubjectForCustomer = mailSubject;
+                string mailSubjectForCompany = mailSubject;
+                mailSubjectForCustomer = mailSubjectForCustomer.Replace("partyName", company.Name);
+                mailSubjectForCompany = mailSubjectForCompany.Replace("partyName", ShoppingCartVM.OrderHeader.Name);
+                string messageCompany = EmailTemlateForCompnay;
+                messageCompany = messageCompany.Replace("companyName",company.Name);
+                messageCompany = messageCompany.Replace("customerName", ShoppingCartVM.OrderHeader.Name);
+                messageCompany = messageCompany.Replace("appointmentDate", ShoppingCartVM.OrderHeader.AppointmentDate.ToString("dd/M/yyyy", CultureInfo.InvariantCulture));
+                messageCompany = messageCompany.Replace("productsForAppointment", productsForAppointment);
+                string messageCustomer = EmailTemlateForCustomer;
+                messageCustomer = messageCustomer.Replace("companyName", company.Name);
+                messageCustomer = messageCustomer.Replace("customerName", ShoppingCartVM.OrderHeader.Name);
+                messageCustomer = messageCustomer.Replace("appointmentDate", ShoppingCartVM.OrderHeader.AppointmentDate.ToString("dd/M/yyyy", CultureInfo.InvariantCulture));
+                messageCustomer = messageCustomer.Replace("productsForAppointment", productsForAppointment);
 
-                _unitOfWork.ShoppingCart.RemoveRange(ShoppingCartVM.ListCart);
-                _unitOfWork.Save();
-                HttpContext.Session.SetInt32(SD.ssShoppingCart, 0);
-
-                if (stripeToken == null)
-                {
-                    //order will be created for delayed payment for authroized company
-                    ShoppingCartVM.OrderHeader.PaymentDueDate = DateTime.Now.AddDays(30);
-                    ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusDelayedPayment;
-                    ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusApproved;
-                }
-                else
-                {
-                    //process the payment
-                    var options = new ChargeCreateOptions
-                    {
-                        Amount = Convert.ToInt32(ShoppingCartVM.OrderHeader.OrderTotal * 100),
-                        Currency = "usd",
-                        Description = "Order ID : " + ShoppingCartVM.OrderHeader.Id,
-                        Source = stripeToken
-                    };
-
-                    var service = new ChargeService();
-                    Charge charge = service.Create(options);
-
-                    if (charge.Id == null)
-                    {
-                        ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusRejected;
-                    }
-                    else
-                    {
-                        ShoppingCartVM.OrderHeader.TransactionId = charge.Id;
-                    }
-                    if (charge.Status.ToLower() == "succeeded")
-                    {
-                        ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusApproved;
-                        ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusApproved;
-                        ShoppingCartVM.OrderHeader.PaymentDate = DateTime.Now;
-                    }
-                }
-
-                _unitOfWork.Save();
-
-                return RedirectToAction("OrderConfirmation", "Cart", new { id = ShoppingCartVM.OrderHeader.Id });
-
+                _emailSender.SendEmailAsync(ShoppingCartVM.OrderHeader.Email, mailSubjectForCustomer, messageCustomer);
+                _emailSender.SendEmailAsync(company.Email, mailSubjectForCompany, messageCompany);
+              
             }
-            catch (Exception ex)
-            {
+            _unitOfWork.ShoppingCart.RemoveRange(ShoppingCartVM.ListCart);
+            _unitOfWork.Save();
 
-                throw ex;
-            }
+            return RedirectToAction("AppointmentConfirmation", "Cart", new { Id = appointmentId });
+
         }
-
         public IActionResult OrderConfirmation(int id)
         {
             OrderHeader orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == id);
@@ -307,5 +407,23 @@ namespace MarbleGraniteShop.Areas.Customer.Controllers
 
             return View(id);
         }
+
+        public IActionResult AppointmentConfirmation(int id)
+        {
+            ShoppingCartVM = new ShoppingCartVM();
+            ShoppingCartVM.Products = new List<Models.Product>();
+
+
+            ShoppingCartVM.Appointment = _unitOfWork.Appointment.Get(id);
+            List<ProductsSelectedForAppointment> objProdList = _unitOfWork.ProductsSelectedForAppointment.GetAll(p => p.AppointmentId == id).ToList();
+
+            foreach (ProductsSelectedForAppointment prodAptObj in objProdList)
+            {
+                ShoppingCartVM.Products.Add(_unitOfWork.Product.GetAll(p => p.Id == prodAptObj.ProductId,includeProperties:"Category,SpecialTag").FirstOrDefault());
+            }
+            HttpContext.Session.SetInt32(SD.ssShoppingCart, 0);
+            return View(ShoppingCartVM);
+        }
+
     }
 }

@@ -21,6 +21,8 @@ namespace MarbleGraniteShop.DataAccess.Repository
             ShoppingCart = new ShoppingCartRepository(_db);
             Images = new ImageRepository(_db);
             FeedBack = new FeedbackRepository(_db);
+            Appointment = new AppointmentRepository(_db);
+            ProductsSelectedForAppointment = new ProductsSelectedForAppointmentRepository(_db);
         }
 
         public IApplicationUserRepository ApplicationUser { get; private set; }
@@ -33,6 +35,8 @@ namespace MarbleGraniteShop.DataAccess.Repository
         public IOrderHeaderRepository OrderHeader { get; private set; }
         public IImageRepository Images { get; private set; }
         public IFeedbackRepository FeedBack { get; private set; }
+        public IAppointmentRepository Appointment { get; private set; }
+        public IProductsSelectedForAppointmentRepository ProductsSelectedForAppointment { get; private set; }
         public ISP_Call SP_Call { get; private set; }
 
         public void Dispose()

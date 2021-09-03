@@ -2,11 +2,12 @@
 
 namespace MarbleGraniteShop.Models.ViewModels
 {
-    public class ShoppingCartVM
+    public class AppointmentDetailsViewModel
     {
-        public IEnumerable<ShoppingCart> ListCart { get; set; }
-        public OrderHeader OrderHeader { get; set; }
+
         public Appointment Appointment { get; set; }
+        public List<Company> Companies { get; set; }
         public List<Product> Products { get; set; }
+
     }
 }

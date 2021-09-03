@@ -40,6 +40,16 @@ namespace MarbleGraniteShop.Models
         [Required]
         public string Name { get; set; }
 
+        // Email and AppointmentDate are added for Schedule Appointment only 
+        [NotMapped]
+        public string Email { get; set; }
+
+        [NotMapped]
+        public DateTime AppointmentDate { get; set; }
+
+        [NotMapped]
+        public DateTime AppointmentTime { get; set; }
+
 
     }
 }

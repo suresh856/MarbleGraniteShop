@@ -1,0 +1,20 @@
+﻿@model MarbleGraniteShop.Models.ViewModels.ShoppingCartVM
+
+@{
+    ViewData["Title"] = "AppointmentConfirmation";
+}
+
+<br />
+<h2 class="text-info">Appointment Confirmation</h2>
+<div class="form-text">
+    Your appointment has been submitted. Please feel free to contact us anytime you have any questions.
+</div>
+<br />
+
+<partial name="~/Views/Shared/_AppointmentCustomerDetails.cshtml" model="Model.Appointment" />
+<br />
+
+<partial name="~/Views/Shared/_AppointmentProductDetails.cshtml" model="Model.Products" />
+
+<a asp-area="Customer" asp-controller="Home" asp-action="Index" class="btn btn-success"> Back to Products</a>
+
